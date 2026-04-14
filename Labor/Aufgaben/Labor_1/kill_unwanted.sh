@@ -47,6 +47,7 @@ while true; do
         USER=$(echo "${LINE}" | tr -s ' ' ';' | cut -d';' -f2)
         RAM=$(echo "${LINE}"  | tr -s ' ' ';' | cut -d';' -f3)
         CPU=$(echo "${LINE}"  | tr -s ' ' ';' | cut -d';' -f4 | cut -d'.' -f1)
+        name=$(echo "${LINE}"  | tr -s ' ' ';' | cut -d';' -f5)
 
         # RAM von KB in MB umrechnen
         RAM_MB=$(( RAM / 1024 ))
@@ -58,7 +59,7 @@ while true; do
 
         # Prozess beenden wenn RAM und CPU gleichzeitig die Grenzwerte überschreiten
         if [ "${RAM_MB}" -gt "${MEMORY_MB}" ] && [ "${CPU}" -gt "${UTILIZATION}" ]; then
-            echo "kill -SIGTERM ${PID}: RAM usage ${RAM_MB} is bigger than ${MEMORY} and CPU usage ${CPU}% is bigger than ${UTILIZATION}%"
+            echo "kill -SIGTERM ${PID}(${name}): RAM usage $((RAM_MB / 1024))GB is bigger than ${MEMORY}GB and CPU usage ${CPU}% is bigger than ${UTILIZATION}%"
         #elif [ "${RAM_MB}" -gt "${MEMORY_MB}" ]; then
             #echo "kill -SIGTERM ${PID}: RAM usage ${RAM_MB} is bigger than ${MEMORY}"
         #elif [ "${CPU}" -gt "${UTILIZATION}" ]; then
@@ -66,8 +67,8 @@ while true; do
         fi
 
     # Header-Zeile von ps überspringen mit tail -n +2
-    done < <(ps -eo pid,user,rss,%cpu | tail -n +2 | sed 's/^ *//')
-
+    done < <(ps -eo pid,user,rss,%cpu,args | tail -n +2)
+    echo "Warten bis zur nächsten Schleife!"
     # Bis zur nächsten Prüfung warten
     sleep ${TIME}
 done
