@@ -63,7 +63,7 @@ done
 # Dauerhaft alle TIME Sekunden die laufenden Prozesse prüfen
 while true; do
     # Speicherlimit einmalig in MB umrechnen
-    MEMORY_MB=$(( MEMORY * 1024 ))
+    MEMORY_KB=$(( MEMORY * 1024 * 1024))
 
     # Jeden laufenden Prozess einzeln auswerten
     while read LINE; do
@@ -72,12 +72,8 @@ while true; do
         USER=$(echo "${LINE}" | tr -s ' ' ';' | cut -d';' -f2)
         RAM=$(echo "${LINE}"  | tr -s ' ' ';' | cut -d';' -f3)
         CPU=$(echo "${LINE}"  | tr -s ' ' ';' | cut -d';' -f4 | cut -d'.' -f1)
-        NAME=$(echo "${LINE}"         | tr -s ' ' ';' | cut -d';' -f5)
+        NAME=$(echo "${LINE}" | tr -s ' ' ';' | cut -d';' -f5)
         TIME_ELAPSED=$(etime_to_seconds "$(echo "${LINE}" | awk '{print $NF}')")
-
-    
-        RAM_MB=$(( RAM / 1024 ))
-
         if [ "${USER}" = "root" ] || [ "${USER}" = "jhub" ] || [ "${USER}" = "nginx" ]; then
             continue
         fi
@@ -87,13 +83,11 @@ while true; do
                 echo "kill -SIGKILL ${PID}: reagiert nicht nach ${elapsed}s"
                 unset map[${PID}]
             fi
-        elif [ "${RAM_MB}" -gt "${MEMORY_MB}" ] && [ "${CPU}" -gt "${UTILIZATION}" ] && [ "${TIME_ELAPSED}" -gt "${TIME}" ]; then
+        elif [ "${RAM}" -gt "${MEMORY_KB}" ] && [ "${CPU}" -gt "${UTILIZATION}" ] && [ "${TIME_ELAPSED}" -gt "${TIME}" ]; then
             echo "kill -SIGTERM ${PID} (${NAME}): RAM $((RAM_MB / 1024))GB > ${MEMORY}GB, CPU ${CPU}% > ${UTILIZATION}%"
             map[${PID}]=$(date +%s)
         fi
-    # Header-Zeile von ps überspringen mit tail -n +2
     done < <(ps -eo pid,user,rss,%cpu,args,etime | tail -n +2)
     echo "Warten bis zur nächsten Prüfung (${TIME}s)..."
-    # Bis zur nächsten Prüfung warten (konfigurierbar via -t)
     sleep "${TIME}"
 done
